@@ -232,7 +232,7 @@ end
 mimgui.HideCursor = false
 mimgui.LockPlayer = false
 mimgui.DisableInput = false
-mimgui._VERSION = '1.0.0'
+mimgui._VERSION = '1.1.0'
 
 mimgui.ComboFlags = ImGuiEnum('ImGuiComboFlags_')
 mimgui.Dir = ImGuiEnum('ImGuiDir_')

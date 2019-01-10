@@ -60,7 +60,7 @@ function make_functions()
                     idx = idx + 1
                     return result
                 end)
-                add_snippet(ovfname, prefix..def.funcname, prefix..ovfname..callargs, desc)
+                add_snippet(def.ov_cimguiname or def.cimguiname, prefix..def.funcname, prefix..ovfname..callargs, desc)
             end
         end
     end
@@ -111,6 +111,7 @@ function make_mimgui_snippets()
         {name='InvalidateFontsTexture', args=''},
         {name='GetRenderer', args='', ret='table dx9renderer'},
         {name='IsInitialized', args='', ret='bool status'},
+        {name='StrCopy', args='${1:dst}, ${2:src}${3:[, len]}'}
     }
     for i, v in ipairs(vars) do
         add_snippet(v.name, 'imgui.'..v.name, 'imgui.'..v.name, '[mimgui variable]\n\nType: '..v.type)
