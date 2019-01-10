@@ -305,6 +305,16 @@ function mimgui.IsInitialized()
     return renderer ~= nil
 end
 
+function mimgui.StrCopy(dst, src, len)
+    if len or tostring(ffi.typeof(dst)):find('*', 1, true) then
+        ffi.copy(dst, src, len)
+    else
+        len = math.min(ffi.sizeof(dst) - 1, #src)
+        ffi.copy(dst, src, len)
+        dst[len] = 0
+    end
+end
+
 local new = {}
 setmetatable(new, {
     __index = function(self, key)
