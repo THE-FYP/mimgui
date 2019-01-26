@@ -63,6 +63,7 @@ function ImplDX9.new(device, hwnd)
     obj.ticksPerSecond = ffi.new('INT64[1]', 0)
     obj.time = ffi.new('INT64[1]', 0)
     imgui.SetCurrentContext(context)
+    imgui.GetIO().BackendRendererName = 'imgui_impl_dx9_lua'
     -- bool ImGui_ImplWin32_Init(HWND hwnd, INT64* ticksPerSecond, INT64* time);
     if not lib.ImGui_ImplWin32_Init(hwnd, obj.ticksPerSecond, obj.time) then
         -- void ImGui_ImplDX9_Shutdown(ImGui_ImplDX9_Context* context);

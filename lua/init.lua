@@ -69,7 +69,7 @@ local function InitializeRenderer()
     -- change font
     local fontFile = getFolderPath(0x14) .. '\\trebucbd.ttf'
 	assert(doesFileExist(fontFile), '[mimgui] Font "' .. fontFile .. '" doesn\'t exist!')
-	local builder = imgui.GlyphRangesBuilder()
+	local builder = imgui.ImFontGlyphRangesBuilder()
 	builder:AddRanges(imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
 	builder:AddText([[‚„…†‡€‰‹‘’“”•–—™›№]])
     defaultGlyphRanges = imgui.ImVector_ImWchar()
@@ -232,7 +232,7 @@ end
 mimgui.HideCursor = false
 mimgui.LockPlayer = false
 mimgui.DisableInput = false
-mimgui._VERSION = '1.1.0'
+mimgui._VERSION = '1.2.0'
 
 mimgui.ComboFlags = ImGuiEnum('ImGuiComboFlags_')
 mimgui.Dir = ImGuiEnum('ImGuiDir_')

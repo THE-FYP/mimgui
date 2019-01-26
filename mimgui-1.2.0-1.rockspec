@@ -1,24 +1,26 @@
 rockspec_format = "3.0"
 package = "mimgui"
-version = "1.1.0-1"
+version = "1.2.0-1"
 source = {
    url = "git+https://github.com/THE-FYP/mimgui.git",
-   tag = "v1.1.0"
+   tag = "v1.2.0"
 }
 description = {
    summary = "Dear ImGui for MoonLoader",
    homepage = "https://github.com/THE-FYP/mimgui",
-   maintainer = "FYP <its.fyp@gmail.com>",
-   license = "MIT"
+   license = "MIT",
+   maintainer = "FYP <its.fyp@gmail.com>"
+}
+supported_platforms = {
+   "windows"
 }
 dependencies = {
    "lua >= 5.1, < 5.4"
 }
-supported_platforms = {"windows"}
 build = {
    type = "cmake",
    variables = {
-      LUA = "$(LUA)",
-      CMAKE_INSTALL_PREFIX="$(LUADIR)"
+      CMAKE_INSTALL_PREFIX = "$(LUADIR)",
+      LUA = "$(LUA)"
    }
 }
