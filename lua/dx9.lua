@@ -121,6 +121,7 @@ function ImplDX9:WindowMessage(msg, wparam, lparam)
 end
 
 function ImplDX9:InvalidateDeviceObjects()
+    self:SwitchContext()
     -- void ImGui_ImplDX9_InvalidateDeviceObjects(ImGui_ImplDX9_Context* context);
     lib.ImGui_ImplDX9_InvalidateDeviceObjects(self.d3dcontext)
 end
