@@ -229,10 +229,10 @@ local function ImGuiEnum(name)
 end
 
 --- API ---
+mimgui._VERSION = '1.3.0'
 mimgui.HideCursor = false
 mimgui.LockPlayer = false
 mimgui.DisableInput = false
-mimgui._VERSION = '1.2.0'
 
 mimgui.ComboFlags = ImGuiEnum('ImGuiComboFlags_')
 mimgui.Dir = ImGuiEnum('ImGuiDir_')

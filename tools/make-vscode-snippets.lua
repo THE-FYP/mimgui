@@ -42,12 +42,15 @@ function make_functions()
             if not def.nonUDT and not def.constructor and not def.destructor then
                 local ovfname = def.ov_cimguiname or def.cimguiname
                 local st = def.stname
-                if st == 'ImGui' then st = nil end
+                if #st == 0 then st = nil end
                 ovfname = st and ovfname:match('^'..st..'_(.*)') or ovfname:match('^ig(.*)')
                 if ovfname == 'end' then ovfname = '_end' end
                 local prefix = st and st..':' or 'imgui.'
+				if not def.argsoriginal then
+					def.argsoriginal = def.args
+				end
                 local argsoriginal = def.argsoriginal:gsub(',([^ ])', ', %1')
-                local desc = fmt('[C++] %s %s::%s%s', def.ret, def.stname, def.funcname, argsoriginal)
+                local desc = fmt('[C++] %s %s::%s%s', def.ret, st and def.stname or def.namespace, def.funcname, argsoriginal)
                 local idx = 1
                 local callargs = def.call_args:gsub('(,?)([%w_]+)', function(comma, name)
                     local default_value = def.defaults[name]
