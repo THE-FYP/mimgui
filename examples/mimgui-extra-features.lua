@@ -11,7 +11,7 @@ local cyr = encoding.CP1251
 encoding.default = 'UTF-8'
 
 local demo = {
-	show = new.bool(true),
+	show = new.bool(),
 	fonts = {},
 	fontsArray = {},
 	fontSelected = new.int(-1),
