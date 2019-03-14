@@ -1,9 +1,9 @@
 rockspec_format = "3.0"
 package = "mimgui"
-version = "1.3.0-1"
+version = "1.4.0-1"
 source = {
    url = "git+https://github.com/THE-FYP/mimgui.git",
-   tag = "v1.3.0"
+   tag = "v1.4.0"
 }
 description = {
    summary = "Dear ImGui for MoonLoader",
