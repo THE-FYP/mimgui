@@ -91,15 +91,20 @@ local function RegisterEvents()
             if renderer and not renderer.lost then
                 renderer:SwitchContext()
                 for _, sub in ipairs(subscriptionsNewFrame) do
-                    if sub.render and sub.before then
-                        sub.before()
+                    if sub._render and sub._before then
+                        sub:_before()
                     end
                 end
                 renderer:NewFrame()
+                local hideCursor = true
                 for _, sub in ipairs(subscriptionsNewFrame) do
-                    if sub.render then
-                        sub.draw()
+                    if sub._render then
+                        sub:_draw()
                     end
+                    hideCursor = hideCursor and sub.HideCursor
+                end
+                if hideCursor then
+                    imgui.SetMouseCursor(imgui.MouseCursor.None)
                 end
                 renderer:EndFrame()
             end
@@ -191,16 +196,24 @@ local function RegisterEvents()
     local updaterThread = lua_thread.create(function()
         while true do
             wait(0)
-            local activate = false
+            local activate, hideCursor, lockPlayer = false, true, false
             if #subscriptionsNewFrame > 0 then
                 for i, sub in ipairs(subscriptionsNewFrame) do
-                    sub.render = sub.cond()
-                    activate = activate or sub.render
+                    if type(sub.Condition) == 'function' then
+                        sub._render = sub.Condition()
+                    else
+                        sub._render = sub.Condition and true
+                    end
+                    if sub._render then
+                        hideCursor = hideCursor and sub.HideCursor
+                        lockPlayer = lockPlayer or sub.LockPlayer
+                    end
+                    activate = activate or sub._render
                 end
             end
             active = activate
-            ShowCursor(active and not mimgui.HideCursor)
-            LockPlayer(active and mimgui.LockPlayer)
+            ShowCursor(active and not hideCursor)
+            LockPlayer(active and lockPlayer)
         end
     end)
     updaterThread.work_in_pause = true
@@ -215,13 +228,6 @@ local function Unsubscribe(t, sub)
     end
 end
 
-local function Subscribe(t, sub)
-    t[#t + 1] = sub
-    return function()
-        Unsubscribe(t, sub)
-    end
-end
-
 local function ImGuiEnum(name)
     return setmetatable({__name = name}, {__index = function(t, k)
         return imgui.lib[t.__name .. k]
@@ -230,8 +236,6 @@ end
 
 --- API ---
 mimgui._VERSION = '1.3.0'
-mimgui.HideCursor = false
-mimgui.LockPlayer = false
 mimgui.DisableInput = false
 
 mimgui.ComboFlags = ImGuiEnum('ImGuiComboFlags_')
@@ -259,7 +263,8 @@ mimgui.Key = ImGuiEnum('ImGuiKey_')
 
 function mimgui.OnInitialize(cb)
     assert(type(cb) == 'function')
-    return Subscribe(subscriptionsInitialize, cb)
+    table.insert(subscriptionsInitialize, cb)
+    return {Unsubscribe = function() Unsubscribe(subscriptionsInitialize, cb) end}
 end
 
 function mimgui.OnFrame(cond, cbBeforeFrame, cbDraw)
@@ -270,7 +275,22 @@ function mimgui.OnFrame(cond, cbBeforeFrame, cbDraw)
         RegisterEvents()
         eventsRegistered = true
     end
-    return Subscribe(subscriptionsNewFrame, {cond = cond, before = cbDraw and cbBeforeFrame or nil, draw = cbDraw or cbBeforeFrame})
+    local sub = {
+        Condition = cond,
+        LockPlayer = false,
+        HideCursor = false,
+        _before = cbDraw and cbBeforeFrame or nil,
+        _draw = cbDraw or cbBeforeFrame,
+        _render = false,
+    }
+    function sub:Unsubscribe()
+        Unsubscribe(subscriptionsNewFrame, self)
+    end
+    function sub:IsActive()
+        return self._render
+    end
+    table.insert(subscriptionsNewFrame, sub)
+    return sub
 end
 
 function mimgui.SwitchContext()
