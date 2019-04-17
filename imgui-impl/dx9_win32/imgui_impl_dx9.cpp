@@ -188,6 +188,9 @@ IMGUI_IMPL_API void ImGui_ImplDX9_RenderDrawData(ImGui_ImplDX9_Context* context,
     context->pd3dDevice->SetTransform(D3DTS_VIEW, &last_view);
     context->pd3dDevice->SetTransform(D3DTS_PROJECTION, &last_projection);
 
+    // ENBShit compatibility fix
+    context->pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, false);
+
     // Restore the DX9 state
     d3d9_state_block->Apply();
     d3d9_state_block->Release();
@@ -195,30 +198,30 @@ IMGUI_IMPL_API void ImGui_ImplDX9_RenderDrawData(ImGui_ImplDX9_Context* context,
 
 IMGUI_IMPL_API ImGui_ImplDX9_Context* ImGui_ImplDX9_Init(LPDIRECT3DDEVICE9 device)
 {
-	if (!device)
-		return NULL;
-	ImGui_ImplDX9_Context* context = new ImGui_ImplDX9_Context;
+    if (!device)
+        return NULL;
+    ImGui_ImplDX9_Context* context = new ImGui_ImplDX9_Context;
     context->pd3dDevice = device;
-	context->pVB = NULL;
-	context->pIB = NULL;
-	context->FontTexture = NULL;
-	context->VertexBufferSize = 5000;
-	context->IndexBufferSize = 10000;
+    context->pVB = NULL;
+    context->pIB = NULL;
+    context->FontTexture = NULL;
+    context->VertexBufferSize = 5000;
+    context->IndexBufferSize = 10000;
     return context;
 }
 
 IMGUI_IMPL_API void ImGui_ImplDX9_Shutdown(ImGui_ImplDX9_Context* context)
 {
-	if (!context)
-		return;
+    if (!context)
+        return;
     ImGui_ImplDX9_InvalidateDeviceObjects(context);
-	delete context;
+    delete context;
 }
 
 IMGUI_IMPL_API bool ImGui_ImplDX9_CreateFontsTexture(ImGui_ImplDX9_Context* context)
 {
-	if (!context->pd3dDevice || context->FontTexture)
-		return false;
+    if (!context->pd3dDevice || context->FontTexture)
+        return false;
 
     // Build texture atlas
     ImGuiIO& io = ImGui::GetIO();
@@ -245,14 +248,14 @@ IMGUI_IMPL_API bool ImGui_ImplDX9_CreateFontsTexture(ImGui_ImplDX9_Context* cont
 
 IMGUI_IMPL_API void ImGui_ImplDX9_InvalidateFontsTexture(ImGui_ImplDX9_Context* context)
 {
-	if (!context->FontTexture)
-		return;
-	// At this point note that we set ImGui::GetIO().Fonts->TexID to be == context->FontTexture, so clear both.
-	ImGuiIO& io = ImGui::GetIO();
-	IM_ASSERT(context->FontTexture == io.Fonts->TexID);
-	context->FontTexture->Release();
-	context->FontTexture = NULL;
-	io.Fonts->TexID = NULL;
+    if (!context->FontTexture)
+        return;
+    // At this point note that we set ImGui::GetIO().Fonts->TexID to be == context->FontTexture, so clear both.
+    ImGuiIO& io = ImGui::GetIO();
+    IM_ASSERT(context->FontTexture == io.Fonts->TexID);
+    context->FontTexture->Release();
+    context->FontTexture = NULL;
+    io.Fonts->TexID = NULL;
 }
 
 IMGUI_IMPL_API void ImGui_ImplDX9_InvalidateDeviceObjects(ImGui_ImplDX9_Context* context)
@@ -269,33 +272,33 @@ IMGUI_IMPL_API void ImGui_ImplDX9_InvalidateDeviceObjects(ImGui_ImplDX9_Context*
         context->pIB->Release();
         context->pIB = NULL;
     }
-	ImGui_ImplDX9_InvalidateFontsTexture(context);
+    ImGui_ImplDX9_InvalidateFontsTexture(context);
 }
 
 IMGUI_IMPL_API void ImGui_ImplDX9_NewFrame(ImGui_ImplDX9_Context* context)
 {
     if (!context->FontTexture)
-		ImGui_ImplDX9_CreateFontsTexture(context);
+        ImGui_ImplDX9_CreateFontsTexture(context);
 }
 
 IMGUI_IMPL_API LPDIRECT3DTEXTURE9 ImGui_ImplDX9_CreateTextureFromFile(LPDIRECT3DDEVICE9 device, LPCTSTR path)
 {
-	LPDIRECT3DTEXTURE9 tex = NULL;
-	if (D3DXCreateTextureFromFile(device, path, &tex) != D3D_OK)
-		return NULL;
-	return tex;
+    LPDIRECT3DTEXTURE9 tex = NULL;
+    if (D3DXCreateTextureFromFile(device, path, &tex) != D3D_OK)
+        return NULL;
+    return tex;
 }
 
 IMGUI_IMPL_API LPDIRECT3DTEXTURE9 ImGui_ImplDX9_CreateTextureFromFileInMemory(LPDIRECT3DDEVICE9 device, LPCVOID src, UINT size)
 {
-	LPDIRECT3DTEXTURE9 tex = NULL;
-	if (D3DXCreateTextureFromFileInMemory(device, src, size, &tex) != D3D_OK)
-		return NULL;
-	return tex;
+    LPDIRECT3DTEXTURE9 tex = NULL;
+    if (D3DXCreateTextureFromFileInMemory(device, src, size, &tex) != D3D_OK)
+        return NULL;
+    return tex;
 }
 
 IMGUI_IMPL_API void ImGui_ImplDX9_ReleaseTexture(LPDIRECT3DTEXTURE9 tex)
 {
-	if (tex)
-		tex->Release();
+    if (tex)
+        tex->Release();
 }
