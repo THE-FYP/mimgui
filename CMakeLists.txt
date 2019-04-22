@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(mimgui VERSION 1.4.0)
+project(mimgui VERSION 1.4.1)
 
 # configure cmake
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
@@ -47,5 +47,5 @@ add_custom_command(OUTPUT "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}"
 add_custom_target(mimgui ALL DEPENDS "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}")
 
 # installation rules
-install(TARGETS cimguidx9 RUNTIME DESTINATION mimgui)
-install(FILES lua/dx9.lua lua/init.lua "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}" DESTINATION mimgui)
+install(TARGETS cimguidx9 RUNTIME DESTINATION "${LUALIBDIR}/mimgui")
+install(FILES lua/dx9.lua lua/init.lua "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}" DESTINATION "${LUADIR}/mimgui")
