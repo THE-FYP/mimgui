@@ -1,3 +1,5 @@
+-- Run: lua make-vscode-snippets.lua ../snippets/vscode/mimgui.code-snippets
+
 local json = require 'dkjson'
 local fmt = string.format
 
@@ -9,6 +11,7 @@ local typedefs = dofile([[..\LuaJIT-ImGui\cimgui\generator\output\typedefs_dict.
 
 snippets = {}
 function add_snippet(name, prefix, body, desc)
+    assert(snippets['imgui.'..name] == nil, name..' is already set')
     snippets['imgui.'..name] = {
         prefix = prefix,
         scope = 'lua',
@@ -39,18 +42,26 @@ end
 function make_functions()
     for k, defs in pairs(fundefs) do
         for _, def in ipairs(defs) do
-            if not def.nonUDT and not def.constructor and not def.destructor then
-                local ovfname = def.ov_cimguiname or def.cimguiname
+            if not def.nonUDT and not def.destructor then
                 local st = def.stname
                 if #st == 0 then st = nil end
-                ovfname = st and ovfname:match('^'..st..'_(.*)') or ovfname:match('^ig(.*)')
-                if ovfname == 'end' then ovfname = '_end' end
-                local prefix = st and st..':' or 'imgui.'
-				if not def.argsoriginal then
-					def.argsoriginal = def.args
-				end
+                if not def.argsoriginal then
+                    def.argsoriginal = def.args
+                end
                 local argsoriginal = def.argsoriginal:gsub(',([^ ])', ', %1')
-                local desc = fmt('[C++] %s %s::%s%s', def.ret, st and def.stname or def.namespace, def.funcname, argsoriginal)
+                local fname, desc, prefix
+                if def.constructor then
+                    local default = (def.ov_cimguiname == def.cimguiname)
+                    fname = default and st or def.ov_cimguiname:match('^'..st..'_(.*)')
+                    prefix = default and 'imgui.' or ('imgui.'..st..'.')
+                    desc = fmt('[C++] %s%s', st, argsoriginal)
+                else
+                    desc = fmt('[C++] %s %s::%s%s', def.ret, st or def.namespace, def.funcname, argsoriginal)
+                    prefix = st and st..':' or 'imgui.'
+                    fname = def.ov_cimguiname or def.cimguiname
+                    fname = st and fname:match('^'..st..'_(.*)') or fname:match('^ig(.*)')
+                end
+                if fname == 'end' then fname = '_end' end
                 local idx = 1
                 local callargs = def.call_args:gsub('(,?)([%w_]+)', function(comma, name)
                     local default_value = def.defaults[name]
@@ -63,7 +74,7 @@ function make_functions()
                     idx = idx + 1
                     return result
                 end)
-                add_snippet(def.ov_cimguiname or def.cimguiname, prefix..def.funcname, prefix..ovfname..callargs, desc)
+                add_snippet(def.ov_cimguiname or def.cimguiname, prefix..def.funcname, prefix..fname..callargs, desc)
             end
         end
     end
