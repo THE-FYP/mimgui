@@ -10,6 +10,8 @@
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
+//  2019-04-30: DirectX9: Added support for special ImDrawCallback_ResetRenderState callback to reset render state.
+//  2019-03-29: Misc: Fixed erroneous assert in ImGui_ImplDX9_InvalidateDeviceObjects().
 //  2019-01-16: Misc: Disabled fog before drawing UI's. Fixes issue #2288.
 //  2018-11-30: Misc: Setting up io.BackendRendererName so it can be displayed in the About Window.
 //  2018-06-08: Misc: Extracted imgui_impl_dx9.cpp/.h away from the old combined DX9+Win32 example.
@@ -33,6 +35,62 @@ struct CUSTOMVERTEX
     float    uv[2];
 };
 #define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1)
+
+static void ImGui_ImplDX9_SetupRenderState(LPDIRECT3DDEVICE9 device, ImDrawData* draw_data)
+{
+    // Setup viewport
+    D3DVIEWPORT9 vp;
+    vp.X = vp.Y = 0;
+    vp.Width = (DWORD)draw_data->DisplaySize.x;
+    vp.Height = (DWORD)draw_data->DisplaySize.y;
+    vp.MinZ = 0.0f;
+    vp.MaxZ = 1.0f;
+    device->SetViewport(&vp);
+
+    // Setup render state: fixed-pipeline, alpha-blending, no face culling, no depth testing, shade mode (for gradient)
+    device->SetPixelShader(NULL);
+    device->SetVertexShader(NULL);
+    device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    device->SetRenderState(D3DRS_LIGHTING, false);
+    device->SetRenderState(D3DRS_ZENABLE, false);
+    device->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+    device->SetRenderState(D3DRS_ALPHATESTENABLE, false);
+    device->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+    device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    device->SetRenderState(D3DRS_SCISSORTESTENABLE, true);
+    device->SetRenderState(D3DRS_SHADEMODE, D3DSHADE_GOURAUD);
+    device->SetRenderState(D3DRS_FOGENABLE, false);
+    device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+    device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+    device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+    device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+    device->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+    device->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+    device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+    device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+
+    // Setup orthographic projection matrix
+    // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right).
+    // Being agnostic of whether <d3dx9.h> or <DirectXMath.h> can be used, we aren't relying on D3DXMatrixIdentity()/D3DXMatrixOrthoOffCenterLH() or DirectX::XMMatrixIdentity()/DirectX::XMMatrixOrthographicOffCenterLH()
+    {
+        float L = draw_data->DisplayPos.x + 0.5f;
+        float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x + 0.5f;
+        float T = draw_data->DisplayPos.y + 0.5f;
+        float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y + 0.5f;
+        D3DMATRIX mat_identity = { { { 1.0f, 0.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f,  0.0f, 0.0f, 0.0f, 1.0f } } };
+        D3DMATRIX mat_projection =
+        { { {
+            2.0f/(R-L),   0.0f,         0.0f,  0.0f,
+            0.0f,         2.0f/(T-B),   0.0f,  0.0f,
+            0.0f,         0.0f,         0.5f,  0.0f,
+            (L+R)/(L-R),  (T+B)/(B-T),  0.5f,  1.0f
+        } } };
+        device->SetTransform(D3DTS_WORLD, &mat_identity);
+        device->SetTransform(D3DTS_VIEW, &mat_identity);
+        device->SetTransform(D3DTS_PROJECTION, &mat_projection);
+    }
+}
 
 // Render function.
 // (this used to be set in io.RenderDrawListsFn and called by ImGui::Render(), but you can now call this directly from your main loop)
@@ -103,58 +161,8 @@ IMGUI_IMPL_API void ImGui_ImplDX9_RenderDrawData(ImGui_ImplDX9_Context* context,
     context->pd3dDevice->SetIndices(context->pIB);
     context->pd3dDevice->SetFVF(D3DFVF_CUSTOMVERTEX);
 
-    // Setup viewport
-    D3DVIEWPORT9 vp;
-    vp.X = vp.Y = 0;
-    vp.Width = (DWORD)draw_data->DisplaySize.x;
-    vp.Height = (DWORD)draw_data->DisplaySize.y;
-    vp.MinZ = 0.0f;
-    vp.MaxZ = 1.0f;
-    context->pd3dDevice->SetViewport(&vp);
-
-    // Setup render state: fixed-pipeline, alpha-blending, no face culling, no depth testing, shade mode (for gradient)
-    context->pd3dDevice->SetPixelShader(NULL);
-    context->pd3dDevice->SetVertexShader(NULL);
-    context->pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    context->pd3dDevice->SetRenderState(D3DRS_LIGHTING, false);
-    context->pd3dDevice->SetRenderState(D3DRS_ZENABLE, false);
-    context->pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-    context->pd3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, false);
-    context->pd3dDevice->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
-    context->pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-    context->pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-    context->pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, true);
-    context->pd3dDevice->SetRenderState(D3DRS_SHADEMODE, D3DSHADE_GOURAUD);
-    context->pd3dDevice->SetRenderState(D3DRS_FOGENABLE, false);
-    context->pd3dDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-    context->pd3dDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-    context->pd3dDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-    context->pd3dDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-    context->pd3dDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-    context->pd3dDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-    context->pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-    context->pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-
-    // Setup orthographic projection matrix
-    // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right).
-    // Being agnostic of whether <d3dx9.h> or <DirectXMath.h> can be used, we aren't relying on D3DXMatrixIdentity()/D3DXMatrixOrthoOffCenterLH() or DirectX::XMMatrixIdentity()/DirectX::XMMatrixOrthographicOffCenterLH()
-    {
-        float L = draw_data->DisplayPos.x + 0.5f;
-        float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x + 0.5f;
-        float T = draw_data->DisplayPos.y + 0.5f;
-        float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y + 0.5f;
-        D3DMATRIX mat_identity = { { { 1.0f, 0.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f, 0.0f,  0.0f, 0.0f, 0.0f, 1.0f } } };
-        D3DMATRIX mat_projection =
-        { { {
-            2.0f/(R-L),   0.0f,         0.0f,  0.0f,
-            0.0f,         2.0f/(T-B),   0.0f,  0.0f,
-            0.0f,         0.0f,         0.5f,  0.0f,
-            (L+R)/(L-R),  (T+B)/(B-T),  0.5f,  1.0f
-        } } };
-        context->pd3dDevice->SetTransform(D3DTS_WORLD, &mat_identity);
-        context->pd3dDevice->SetTransform(D3DTS_VIEW, &mat_identity);
-        context->pd3dDevice->SetTransform(D3DTS_PROJECTION, &mat_projection);
-    }
+    // Setup desired DX state
+    ImGui_ImplDX9_SetupRenderState(context->pd3dDevice, draw_data);
 
     // Render command lists
     int vtx_offset = 0;
@@ -166,9 +174,14 @@ IMGUI_IMPL_API void ImGui_ImplDX9_RenderDrawData(ImGui_ImplDX9_Context* context,
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
         {
             const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-            if (pcmd->UserCallback)
+            if (pcmd->UserCallback != NULL)
             {
-                pcmd->UserCallback(cmd_list, pcmd);
+                // User callback, registered via ImDrawList::AddCallback()
+                // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
+                if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+                    ImGui_ImplDX9_SetupRenderState(context->pd3dDevice, draw_data);
+                else
+                    pcmd->UserCallback(cmd_list, pcmd);
             }
             else
             {
@@ -202,6 +215,7 @@ IMGUI_IMPL_API ImGui_ImplDX9_Context* ImGui_ImplDX9_Init(LPDIRECT3DDEVICE9 devic
         return NULL;
     ImGui_ImplDX9_Context* context = new ImGui_ImplDX9_Context;
     context->pd3dDevice = device;
+	//context->pd3dDevice->AddRef();
     context->pVB = NULL;
     context->pIB = NULL;
     context->FontTexture = NULL;
@@ -215,6 +229,7 @@ IMGUI_IMPL_API void ImGui_ImplDX9_Shutdown(ImGui_ImplDX9_Context* context)
     if (!context)
         return;
     ImGui_ImplDX9_InvalidateDeviceObjects(context);
+	//if (context->pd3dDevice) { context->pd3dDevice->Release(); context->pd3dDevice = NULL; }
     delete context;
 }
 
@@ -250,12 +265,10 @@ IMGUI_IMPL_API void ImGui_ImplDX9_InvalidateFontsTexture(ImGui_ImplDX9_Context* 
 {
     if (!context->FontTexture)
         return;
-    // At this point note that we set ImGui::GetIO().Fonts->TexID to be == context->FontTexture, so clear both.
-    ImGuiIO& io = ImGui::GetIO();
-    IM_ASSERT(context->FontTexture == io.Fonts->TexID);
     context->FontTexture->Release();
     context->FontTexture = NULL;
-    io.Fonts->TexID = NULL;
+    // We copied context->FontTexture to io.Fonts->TexID so let's clear that as well.
+    ImGui::GetIO().Fonts->TexID = NULL;
 }
 
 IMGUI_IMPL_API void ImGui_ImplDX9_InvalidateDeviceObjects(ImGui_ImplDX9_Context* context)

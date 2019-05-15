@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(mimgui VERSION 1.4.1)
+project(mimgui VERSION 1.5.0)
 
 # configure cmake
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
@@ -13,7 +13,7 @@ set(IMGUI_SOURCES_IMPL_DX9 imgui-impl/dx9_win32/imgui_impl_dx9.cpp imgui-impl/dx
 # rebuild cimgui sources
 set(LUA "lua" CACHE STRING "Lua interpreter")
 file(TO_NATIVE_PATH "${LUA}" LUA)
-execute_process(COMMAND "${LUA}" generator2.lua clang WORKING_DIRECTORY "${CIMGUI_DIR}/generator" RESULT_VARIABLE RET)
+execute_process(COMMAND "${LUA}" generator2.lua gcc WORKING_DIRECTORY "${CIMGUI_DIR}/generator" RESULT_VARIABLE RET)
 if (NOT "${RET}" EQUAL "0")
   message(FATAL_ERROR "Error running lua: ${RET}")
 endif()
@@ -34,14 +34,11 @@ target_link_options(cimguidx9 PUBLIC /SUBSYSTEM:WINDOWS)
 # mimgui target: LuaJIT-ImGui-generated bindings with some changes
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lua/imgui_base.lua" IMGUI_BASE_LUA)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lua/imgui_base_cdefs.lua" IMGUI_CDEFS_LUA)
-set(IMGUI_LUA_OUT "${CMAKE_CURRENT_BINARY_DIR}/imgui.lua")
-set(CDEFS_LUA_OUT "${CMAKE_CURRENT_BINARY_DIR}/cdefs.lua")
+file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/imgui.lua" IMGUI_LUA_OUT)
+file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/cdefs.lua" CDEFS_LUA_OUT)
 add_custom_command(OUTPUT "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/LuaJIT-ImGui/lua"
-  COMMAND type "${IMGUI_BASE_LUA}" > "${IMGUI_LUA_OUT}"
-  COMMAND "${LUA}" class_gen.lua >> "${IMGUI_LUA_OUT}"
-  COMMAND clang -E -DCIMGUI_DEFINE_ENUMS_AND_STRUCTS ../cimgui/cimgui.h | "${LUA}" cdef.lua false cimgui >> "${CDEFS_LUA_OUT}"
-  COMMAND type "${IMGUI_CDEFS_LUA}" >> "${CDEFS_LUA_OUT}"
+  COMMAND "${LUA}" generator.lua "${IMGUI_CDEFS_LUA}" "${CDEFS_LUA_OUT}" "${IMGUI_BASE_LUA}" "${IMGUI_LUA_OUT}"
   VERBATIM
 )
 add_custom_target(mimgui ALL DEPENDS "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}")

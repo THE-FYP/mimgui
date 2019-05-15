@@ -1,9 +1,9 @@
 rockspec_format = "3.0"
 package = "mimgui"
-version = "1.4.1-1"
+version = "1.5.0-1"
 source = {
    url = "git+https://github.com/THE-FYP/mimgui.git",
-   tag = "v1.4.1"
+   tag = "v1.5.0"
 }
 description = {
    summary = "Dear ImGui for MoonLoader",
@@ -20,8 +20,8 @@ dependencies = {
 build = {
    type = "cmake",
    variables = {
+      LUA = "$(LUA)",
       LUADIR = "$(LUADIR)",
-      LUALIBDIR = "$(LIBDIR)",
-      LUA = "$(LUA)"
+      LUALIBDIR = "$(LIBDIR)"
    }
 }
