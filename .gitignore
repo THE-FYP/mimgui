@@ -2,3 +2,4 @@
 /mimgui/
 /.vscode/
 /build.luarocks/
+*.rock
