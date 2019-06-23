@@ -235,7 +235,7 @@ local function ImGuiEnum(name)
 end
 
 --- API ---
-mimgui._VERSION = '1.5.0'
+mimgui._VERSION = '1.6.0'
 mimgui.DisableInput = false
 
 mimgui.ComboFlags = ImGuiEnum('ImGuiComboFlags_')
