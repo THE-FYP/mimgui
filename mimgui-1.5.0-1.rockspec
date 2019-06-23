@@ -22,6 +22,7 @@ build = {
    variables = {
       LUA = "$(LUA)",
       LUADIR = "$(LUADIR)",
-      LUALIBDIR = "$(LIBDIR)"
+      LUALIBDIR = "$(LIBDIR)",
+      CMAKE_GENERATOR_TOOLSET = "$(CMAKE_GENERATOR_TOOLSET)"
    }
 }
