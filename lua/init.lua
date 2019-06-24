@@ -49,6 +49,11 @@ local function LockPlayer(lock)
     playerLocked = lock
 end
 
+-- MoonLoader v.027
+if not isCursorActive then
+    isCursorActive = function() return cursorActive end
+end
+
 local function InitializeRenderer()
     -- init renderer
     local hwnd = ffi.cast('HWND', readMemory(0x00C8CF88, 4, false))
@@ -68,13 +73,13 @@ local function InitializeRenderer()
     
     -- change font
     local fontFile = getFolderPath(0x14) .. '\\trebucbd.ttf'
-	assert(doesFileExist(fontFile), '[mimgui] Font "' .. fontFile .. '" doesn\'t exist!')
-	local builder = imgui.ImFontGlyphRangesBuilder()
-	builder:AddRanges(imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
-	builder:AddText([[‚„…†‡€‰‹‘’“”•–—™›№]])
+    assert(doesFileExist(fontFile), '[mimgui] Font "' .. fontFile .. '" doesn\'t exist!')
+    local builder = imgui.ImFontGlyphRangesBuilder()
+    builder:AddRanges(imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
+    builder:AddText([[‚„…†‡€‰‹‘’“”•–—™›№]])
     defaultGlyphRanges = imgui.ImVector_ImWchar()
     builder:BuildRanges(defaultGlyphRanges)
-	imgui.GetIO().Fonts:AddFontFromFileTTF(fontFile, 14, nil, defaultGlyphRanges[0].Data)
+    imgui.GetIO().Fonts:AddFontFromFileTTF(fontFile, 14, nil, defaultGlyphRanges[0].Data)
 
     -- invoke initializers
     for _, cb in ipairs(subscriptionsInitialize) do
@@ -100,11 +105,11 @@ local function RegisterEvents()
                 for _, sub in ipairs(subscriptionsNewFrame) do
                     if sub._render then
                         sub:_draw()
+                        hideCursor = hideCursor and sub.HideCursor
                     end
-                    hideCursor = hideCursor and sub.HideCursor
                 end
-                if hideCursor then
-                    imgui.SetMouseCursor(imgui.MouseCursor.None)
+                if hideCursor and not isCursorActive() then
+                    imgui.SetMouseCursor(imgui.lib.ImGuiMouseCursor_None)
                 end
                 renderer:EndFrame()
             end

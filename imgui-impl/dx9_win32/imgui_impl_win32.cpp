@@ -88,29 +88,33 @@ static bool ImGui_ImplWin32_UpdateMouseCursor()
     ImGuiIO& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
         return false;
+    ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
+    if (g_LastMouseCursor != mouse_cursor)
+    {
+        g_LastMouseCursor = mouse_cursor;
 
-    ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
-    if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
-    {
-        // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-        ::SetCursor(NULL);
-    }
-    else
-    {
-        // Show OS mouse cursor
-        LPTSTR win32_cursor = IDC_ARROW;
-        switch (imgui_cursor)
+        if (mouse_cursor == ImGuiMouseCursor_None)
         {
-        case ImGuiMouseCursor_Arrow:        win32_cursor = IDC_ARROW; break;
-        case ImGuiMouseCursor_TextInput:    win32_cursor = IDC_IBEAM; break;
-        case ImGuiMouseCursor_ResizeAll:    win32_cursor = IDC_SIZEALL; break;
-        case ImGuiMouseCursor_ResizeEW:     win32_cursor = IDC_SIZEWE; break;
-        case ImGuiMouseCursor_ResizeNS:     win32_cursor = IDC_SIZENS; break;
-        case ImGuiMouseCursor_ResizeNESW:   win32_cursor = IDC_SIZENESW; break;
-        case ImGuiMouseCursor_ResizeNWSE:   win32_cursor = IDC_SIZENWSE; break;
-        case ImGuiMouseCursor_Hand:         win32_cursor = IDC_HAND; break;
+            // Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
+            ::SetCursor(NULL);
         }
-        ::SetCursor(::LoadCursor(NULL, win32_cursor));
+        else
+        {
+            // Show OS mouse cursor
+            LPTSTR win32_cursor = IDC_ARROW;
+            switch (mouse_cursor)
+            {
+            case ImGuiMouseCursor_Arrow:        win32_cursor = IDC_ARROW; break;
+            case ImGuiMouseCursor_TextInput:    win32_cursor = IDC_IBEAM; break;
+            case ImGuiMouseCursor_ResizeAll:    win32_cursor = IDC_SIZEALL; break;
+            case ImGuiMouseCursor_ResizeEW:     win32_cursor = IDC_SIZEWE; break;
+            case ImGuiMouseCursor_ResizeNS:     win32_cursor = IDC_SIZENS; break;
+            case ImGuiMouseCursor_ResizeNESW:   win32_cursor = IDC_SIZENESW; break;
+            case ImGuiMouseCursor_ResizeNWSE:   win32_cursor = IDC_SIZENWSE; break;
+            case ImGuiMouseCursor_Hand:         win32_cursor = IDC_HAND; break;
+            }
+            ::SetCursor(::LoadCursor(NULL, win32_cursor));
+        }
     }
     return true;
 }
@@ -214,12 +218,7 @@ void    ImGui_ImplWin32_NewFrame(HWND hwnd, INT64 ticksPerSecond, INT64* time)
     ImGui_ImplWin32_UpdateMousePos(hwnd);
 
     // Update OS mouse cursor with the cursor requested by imgui
-    ImGuiMouseCursor mouse_cursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
-    if (g_LastMouseCursor != mouse_cursor)
-    {
-        g_LastMouseCursor = mouse_cursor;
-        ImGui_ImplWin32_UpdateMouseCursor();
-    }
+    ImGui_ImplWin32_UpdateMouseCursor();
 
     // Update game controllers (if available)
     ImGui_ImplWin32_UpdateGameControllers();
@@ -275,8 +274,8 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
         if (msg == WM_MBUTTONUP) { button = 2; }
         if (msg == WM_XBUTTONUP) { button = (GET_XBUTTON_WPARAM(wParam) == XBUTTON1) ? 3 : 4; }
         io.MouseDown[button] = false;
-		/*if (!ImGui::IsAnyMouseDown() && ::GetCapture() == hwnd)
-			::ReleaseCapture();*/
+        /*if (!ImGui::IsAnyMouseDown() && ::GetCapture() == hwnd)
+            ::ReleaseCapture();*/
         return 0;
     }
     case WM_MOUSEWHEEL:
