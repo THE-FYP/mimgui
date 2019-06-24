@@ -154,13 +154,13 @@ local function RegisterEvents()
                 if (keyboard and io.WantCaptureKeyboard) or (mouse and io.WantCaptureMouse) then
                     if msg == winmsg.WM_KEYDOWN or msg == winmsg.WM_SYSKEYDOWN then
                         keyState[wparam] = false
-                        consumeWindowMessage()
+                        consumeWindowMessage(true, true, true)
                     elseif msg == winmsg.WM_KEYUP or msg == winmsg.WM_SYSKEYUP then
                         if not keyState[wparam] then
-                            consumeWindowMessage()
+                            consumeWindowMessage(true, true, true)
                         end
                     else
-                        consumeWindowMessage()
+                        consumeWindowMessage(true, true, true)
                     end
                 end
             end
