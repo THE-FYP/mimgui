@@ -13,7 +13,7 @@ set(IMGUI_SOURCES_IMPL_DX9 imgui-impl/dx9_win32/imgui_impl_dx9.cpp imgui-impl/dx
 # rebuild cimgui sources
 set(LUA "lua" CACHE STRING "Lua interpreter")
 file(TO_NATIVE_PATH "${LUA}" LUA)
-execute_process(COMMAND "${LUA}" generator2.lua gcc WORKING_DIRECTORY "${CIMGUI_DIR}/generator" RESULT_VARIABLE RET)
+execute_process(COMMAND "${LUA}" generator.lua gcc WORKING_DIRECTORY "${CIMGUI_DIR}/generator" RESULT_VARIABLE RET)
 if (NOT "${RET}" EQUAL "0")
   message(FATAL_ERROR "Error running lua: ${RET}")
 endif()
