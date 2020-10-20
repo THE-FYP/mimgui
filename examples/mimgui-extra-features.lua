@@ -140,7 +140,7 @@ function(self)
 		if imgui.BeginTabItem('Encoding') then
 			imgui.Text('Текст на русском')
 			imgui.Separator()
-			imgui.InputText('##input', demo.textBuffer, ffi.sizeof(demo.textBuffer) - 1)
+			imgui.InputText('##input', demo.textBuffer, ffi.sizeof(demo.textBuffer))
 			imgui.SameLine()
 			if imgui.Button('Записать в лог') then
 				print(cyr(str(demo.textBuffer)))
