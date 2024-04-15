@@ -107,6 +107,8 @@ function ImplDX9:EndFrame()
     lib.ImGui_ImplDX9_RenderDrawData(self.d3dcontext, imgui.GetDrawData())
 end
 
+jit.off(ImplDX9.EndFrame)
+
 function ImplDX9:WindowMessage(msg, wparam, lparam)
     self:SwitchContext()
     if msg == 0x0102 then -- WM_CHAR
