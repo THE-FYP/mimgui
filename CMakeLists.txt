@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(mimgui VERSION 1.6.2)
+project(mimgui VERSION 1.7.1)
 
 # configure cmake
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
