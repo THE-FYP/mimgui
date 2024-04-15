@@ -45,4 +45,4 @@ add_custom_target(mimgui ALL DEPENDS "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}")
 
 # installation rules
 install(TARGETS cimguidx9 RUNTIME DESTINATION "${LUALIBDIR}/mimgui")
-install(FILES lua/dx9.lua lua/init.lua "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}" DESTINATION "${LUADIR}/mimgui")
+install(FILES lua/dx9.lua lua/win32.lua lua/init.lua "${IMGUI_LUA_OUT}" "${CDEFS_LUA_OUT}" DESTINATION "${LUADIR}/mimgui")
