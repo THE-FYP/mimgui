@@ -3,6 +3,7 @@
 -- Copyright (c) 2018, FYP <https://github.com/THE-FYP>
 
 local imgui = require 'mimgui.imgui'
+local win32 = require 'mimgui.win32'
 local lib = imgui.lib
 local ffi = require 'ffi'
 
@@ -11,16 +12,6 @@ typedef struct IDirect3DDevice9 *LPDIRECT3DDEVICE9, *PDIRECT3DDEVICE9;
 typedef struct IDirect3DVertexBuffer9 *LPDIRECT3DVERTEXBUFFER9, *PDIRECT3DVERTEXBUFFER9;
 typedef struct IDirect3DIndexBuffer9 *LPDIRECT3DINDEXBUFFER9, *PDIRECT3DINDEXBUFFER9;
 typedef struct IDirect3DTexture9 *LPDIRECT3DTEXTURE9, *PDIRECT3DTEXTURE9;
-typedef const char *LPCTSTR;
-typedef const void *LPCVOID;
-typedef unsigned int UINT;
-typedef void *HWND;
-typedef signed __int64 INT64, *PINT64;
-typedef unsigned int UINT_PTR, *PUINT_PTR;
-typedef long LONG_PTR, *PLONG_PTR;
-typedef UINT_PTR WPARAM;
-typedef LONG_PTR LPARAM;
-typedef LONG_PTR LRESULT;
 typedef struct ImGui_ImplDX9_Context
 {
 	LPDIRECT3DDEVICE9        pd3dDevice;
@@ -77,6 +68,7 @@ function ImplDX9.new(device, hwnd)
     obj.d3dcontext = d3dcontext
     obj.d3ddevice = device
     obj.hwnd = hwnd
+    obj.dpiscale = win32.GetDpiScaleForWindow(hwnd)
     -- set finalizer
     ffi.gc(d3dcontext, function(cd)
         imgui.SetCurrentContext(context)

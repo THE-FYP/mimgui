@@ -20,16 +20,42 @@ local cursorActive = false
 local playerLocked = false
 local iniFilePath = nil
 local defaultGlyphRanges = nil
+local dpiScaling
 
-setmetatable(mimgui, {__index = imgui, __newindex = function(t, k, v)
-    if imgui[k] then
-        print('[mimgui] Warning! Overwriting existing key "'..k..'"!')
+setmetatable(mimgui, {
+    __index = imgui,
+    __newindex = function(t, k, v)
+        if imgui[k] then
+            print('[mimgui] Warning! Overwriting existing key "' .. k .. '"!')
+        end
+        rawset(t, k, v)
     end
-    rawset(t, k, v)
-end})
+})
 
 -- background "Shift" triggering fix
 memory.fill(0x00531155, 0x90, 5, true)
+
+local function ScaleFontSize(size_pixels)
+    return math.floor(mimgui.GetDpiScale() * size_pixels)
+end
+
+local function HookAddFont(f, size_pixels_argn, font_cfg_argn)
+    return function(...)
+        local args, argc = { ... }, select('#', ...)
+        args[size_pixels_argn] = args[size_pixels_argn] and ScaleFontSize(args[size_pixels_argn])
+        local font_cfg = args[font_cfg_argn]
+        local size_backup
+        if font_cfg then
+            size_backup = font_cfg.SizePixels
+            font_cfg.SizePixels = ScaleFontSize(size_backup)
+        end
+        local ret = f(unpack(args, 1, argc))
+        if font_cfg then
+            font_cfg.SizePixels = size_backup
+        end
+        return ret
+    end
+end
 
 local function ShowCursor(show)
     if show then
@@ -60,7 +86,7 @@ local function InitializeRenderer()
     local d3ddevice = ffi.cast('LPDIRECT3DDEVICE9', getD3DDevicePtr())
     renderer = assert(DX9.new(d3ddevice, hwnd))
     renderer:SwitchContext()
-    
+
     -- configure imgui
     imgui.GetIO().ImeWindowHandle = nil -- default causes crash. TODO: why?
     imgui.GetIO().LogFilename = nil
@@ -70,7 +96,20 @@ local function InitializeRenderer()
     end
     iniFilePath = ffi.new('char[260]', confdir .. script.this.filename .. '.ini')
     imgui.GetIO().IniFilename = iniFilePath
-    
+
+    local dsm = mimgui.GetDpiScalingMode()
+    if dsm == 1 or dsm == 2 then
+        imgui.GetIO().FontGlobalScale = mimgui.GetDpiScale()
+    elseif dsm == 4 then
+        local index = imgui.ImFontAtlas.__index
+        index.AddFont = HookAddFont(index.AddFont, 0, 2)
+        index.AddFontDefault = HookAddFont(index.AddFontDefault, 0, 2)
+        index.AddFontFromFileTTF = HookAddFont(index.AddFontFromFileTTF, 3, 4)
+        index.AddFontFromMemoryTTF = HookAddFont(index.AddFontFromMemoryTTF, 4, 5)
+        index.AddFontFromMemoryCompressedTTF = HookAddFont(index.AddFontFromMemoryCompressedTTF, 4, 5)
+        index.AddFontFromMemoryCompressedBase85TTF = HookAddFont(index.AddFontFromMemoryCompressedBase85TTF, 3, 4)
+    end
+
     -- change font
     local fontFile = getFolderPath(0x14) .. '\\trebucbd.ttf'
     assert(doesFileExist(fontFile), '[mimgui] Font "' .. fontFile .. '" doesn\'t exist!')
@@ -79,11 +118,16 @@ local function InitializeRenderer()
     builder:AddText([[‚„…†‡€‰‹‘’“”•–—™›№]])
     defaultGlyphRanges = imgui.ImVector_ImWchar()
     builder:BuildRanges(defaultGlyphRanges)
-    imgui.GetIO().Fonts:AddFontFromFileTTF(fontFile, 14, nil, defaultGlyphRanges[0].Data)
+    local fontSize = dsm == 3 and ScaleFontSize(14) or 14
+    imgui.GetIO().Fonts:AddFontFromFileTTF(fontFile, fontSize, nil, defaultGlyphRanges[0].Data)
 
     -- invoke initializers
     for _, cb in ipairs(subscriptionsInitialize) do
         cb()
+    end
+
+    if dsm == 2 or dsm == 3 or dsm == 4 then
+        imgui.GetStyle():ScaleAllSizes(mimgui.GetDpiScale())
     end
 end
 
@@ -115,35 +159,35 @@ local function RegisterEvents()
             end
         end
     end)
-    
+
     local keyState = {}
     local WM_MOUSEHWHEEL = 0x020E
     local mouseMsgs = {
-        [WM_MOUSEHWHEEL]=true,
-        [winmsg.WM_LBUTTONDOWN]=true,
-        [winmsg.WM_LBUTTONDBLCLK]=true,
-        [winmsg.WM_RBUTTONDOWN]=true,
-        [winmsg.WM_RBUTTONDBLCLK]=true,
-        [winmsg.WM_MBUTTONDOWN]=true,
-        [winmsg.WM_MBUTTONDBLCLK]=true,
-        [winmsg.WM_LBUTTONUP]=true,
-        [winmsg.WM_RBUTTONUP]=true,
-        [winmsg.WM_MBUTTONUP]=true,
-        [winmsg.WM_MOUSEWHEEL]=true,
-        [winmsg.WM_SETCURSOR]=true
+        [WM_MOUSEHWHEEL] = true,
+        [winmsg.WM_LBUTTONDOWN] = true,
+        [winmsg.WM_LBUTTONDBLCLK] = true,
+        [winmsg.WM_RBUTTONDOWN] = true,
+        [winmsg.WM_RBUTTONDBLCLK] = true,
+        [winmsg.WM_MBUTTONDOWN] = true,
+        [winmsg.WM_MBUTTONDBLCLK] = true,
+        [winmsg.WM_LBUTTONUP] = true,
+        [winmsg.WM_RBUTTONUP] = true,
+        [winmsg.WM_MBUTTONUP] = true,
+        [winmsg.WM_MOUSEWHEEL] = true,
+        [winmsg.WM_SETCURSOR] = true
     }
     local keyboardMsgs = {
-        [winmsg.WM_KEYDOWN]=true,
-        [winmsg.WM_SYSKEYDOWN]=true,
-        [winmsg.WM_KEYUP]=true,
-        [winmsg.WM_SYSKEYUP]=true,
-        [winmsg.WM_CHAR]=true
+        [winmsg.WM_KEYDOWN] = true,
+        [winmsg.WM_SYSKEYDOWN] = true,
+        [winmsg.WM_KEYUP] = true,
+        [winmsg.WM_SYSKEYUP] = true,
+        [winmsg.WM_CHAR] = true
     }
     addEventHandler('onWindowMessage', function(msg, wparam, lparam)
         if not renderer then
             return
         end
-        
+
         if not mimgui.DisableInput then
             local keyboard = keyboardMsgs[msg]
             local mouse = mouseMsgs[msg]
@@ -177,14 +221,14 @@ local function RegisterEvents()
             end
         end
     end)
-    
+
     addEventHandler('onD3DDeviceLost', function()
         if renderer and not renderer.lost then
             renderer:InvalidateDeviceObjects()
             renderer.lost = true
         end
     end)
-    
+
     addEventHandler('onD3DDeviceReset', function()
         if renderer then
             renderer.lost = false
@@ -197,7 +241,7 @@ local function RegisterEvents()
             LockPlayer(false)
         end
     end)
-    
+
     local updaterThread = lua_thread.create(function()
         while true do
             wait(0)
@@ -234,13 +278,15 @@ local function Unsubscribe(t, sub)
 end
 
 local function ImGuiEnum(name)
-    return setmetatable({__name = name}, {__index = function(t, k)
-        return imgui.lib[t.__name .. k]
-    end})
+    return setmetatable({ __name = name }, {
+        __index = function(t, k)
+            return imgui.lib[t.__name .. k]
+        end
+    })
 end
 
 --- API ---
-mimgui._VERSION = '1.7.0'
+mimgui._VERSION = '1.7.1'
 mimgui.DisableInput = false
 
 mimgui.ComboFlags = ImGuiEnum('ImGuiComboFlags_')
@@ -269,7 +315,7 @@ mimgui.Key = ImGuiEnum('ImGuiKey_')
 function mimgui.OnInitialize(cb)
     assert(type(cb) == 'function')
     table.insert(subscriptionsInitialize, cb)
-    return {Unsubscribe = function() Unsubscribe(subscriptionsInitialize, cb) end}
+    return { Unsubscribe = function() Unsubscribe(subscriptionsInitialize, cb) end }
 end
 
 function mimgui.OnFrame(cond, cbBeforeFrame, cbDraw)
@@ -291,9 +337,11 @@ function mimgui.OnFrame(cond, cbBeforeFrame, cbDraw)
     function sub:Unsubscribe()
         Unsubscribe(subscriptionsNewFrame, self)
     end
+
     function sub:IsActive()
         return self._render
     end
+
     table.insert(subscriptionsNewFrame, sub)
     return sub
 end
@@ -340,21 +388,50 @@ function mimgui.StrCopy(dst, src, len)
     end
 end
 
+local defaultSettings = {
+    display_settings = {
+        dpi_scaling_mode = 3
+    }
+}
+
+--  0: None
+--  1: ImGuiIO::FontGlobalScale
+--  2: ImGuiIO::FontGlobalScale + ImGuiStyle::ScaleAllSizes
+--  3: Default ImFontAtlas::AddFont* + ImGuiStyle::ScaleAllSizes
+--  4: All ImFontAtlas::AddFont* + ImGuiStyle::ScaleAllSizes
+function mimgui.SetDpiScalingMode(v)
+    dpiScaling = v
+end
+
+function mimgui.GetDpiScalingMode()
+    if not dpiScaling then
+        local inicfg = require('inicfg')
+        local data = inicfg.load(defaultSettings, 'mimgui\\mimgui.user')
+        data = inicfg.load(data, 'mimgui\\' .. script.this.filename .. '.user')
+        dpiScaling = data.display_settings.dpi_scaling_mode
+    end
+    return dpiScaling
+end
+
+function mimgui.GetDpiScale()
+    return renderer.dpiscale
+end
+
 local new = {}
 setmetatable(new, {
     __index = function(self, key)
         local basetype = ffi.typeof(key)
         local mt = {
             __index = function(self, sz)
-                return setmetatable({type = ffi.typeof('$[$]', self.type, sz)}, getmetatable(self))
+                return setmetatable({ type = ffi.typeof('$[$]', self.type, sz) }, getmetatable(self))
             end,
             __call = function(self, ...)
                 return self.type(...)
             end
         }
-        return setmetatable({type = ffi.typeof('$[1]', basetype), basetype = basetype}, {
+        return setmetatable({ type = ffi.typeof('$[1]', basetype), basetype = basetype }, {
             __index = function(self, sz)
-                return setmetatable({type = ffi.typeof('$[$]', self.basetype, sz)}, mt)
+                return setmetatable({ type = ffi.typeof('$[$]', self.basetype, sz) }, mt)
             end,
             __call = mt.__call
         })
